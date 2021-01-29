@@ -5,7 +5,7 @@ object dataTypes extends App {
   println(x)
 
   var v: String = "Nikhil Mishra"
-  v = "Shubhra"
+  v = "Shubham"
   println(v)
 
   val number1: Int = 432323
