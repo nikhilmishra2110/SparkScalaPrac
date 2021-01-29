@@ -1,0 +1,131 @@
+Spark is a general purposr in memory compute engine
+
+Compute
+========
+Hadoop provides 3 things:
+    1. Storage HDFS
+    2. Compute Map Reduce
+    3. Resource manager YARN
+
+    Spark should be compared to MapReduce - it is a map reduce replacement
+    Spark needs two additional things = storage and resoure manager - Spark is plug and play
+    1. Storages - local, HDFS, S3
+    2. RM can be YARN, Mesos, Kubernetes
+
+MapReduce:
+==========
+    MR1 MR2 MR3 MR4
+
+        HDFS
+    For each mr job we require 2 disk access - one for reading and one for writing
+    Disk I/O takes up a lot of time
+
+    Spark:
+        Reads data in V1(in memory) which is fed to V2 then to V3->v4->v5. ALl these are stored in memory
+        Ony two reads are required. Do everything in memory
+        10 to 100 times faster tna mapreduce
+        Disk I/o are removed
+
+General purpose
+===============
+In case of MR -> pig for cleaning, hive for querying, mahout for ml, sqoop for ingestion
+In case ofSpark -> Just learn one style of programming paradigm
+----------------
+Spark on top of Hadoop(HDFS and YARN)
+
+-------------------------
+>>>>>>>>>>>>>>>>
+
+How is data stored in Spark?
+    The basic unit which holds the data in spark is called RDD
+    resilient distributed data set
+
+    List:
+        In java list is stored on one machine
+        What if it is stored on multiple machines?
+
+     RDD is in-memory distributed collection - across the machines
+     Basic unit that stores the data
+
+Program flow in Spark:
+    rdd1 = load file1 from HDFS
+    rdd2  = rdd1.filter // transform data
+    rdd3 = rdd2.map // transform data
+    rdd3.collect() //// no more transformation now collect the data -
+
+    when we execute first three lines nothing is actually run, only DAG is updated - entry is added to the DAG
+    Directed acyclic graph: only at action the execution happens //TODO: Imp
+
+    DAG : load data -> rdd1 --> filter --> rdd2 --> map --> rdd3 ---> rdd.collect()
+    DAG is run only during action - everything will execute
+    DAG is execution plan which is built when we run transformation staements
+
+There are two kind of operations in Spark:
+    1. Transformation (map, filter) - transformations are lazy
+    2. Actions(collect, print, count, show) -- actions are NOT lazy
+
+Visualizing a spark rdd - dataset size 500MB - 4 blocks with blocksize 128MB
+                DN
+
+    WN1     WN2     WN3     WN4    ---> on RAM of these Worker Nodes data is loaded from HDFS disk onto this memory
+    -----------HDFS disk--------------
+    Block1 Block2 Block3 Block4
+
+    One to one mapping between ram in WN and disk in HDFS
+    Whatever is on RAM on WNs is called rdd - in memory- distributed across memory
+
+    if HDFS has data in 4 blocks and loaded into RDD then rdd will have 4 partitions
+
+
+What does resilient means?
+    It is resilient to failure - if we loose RDD we can recover it back
+    How does it recover?
+        In memory we cannot do replication - disk is cheap memory is costly
+        replicas are out of question
+    Ability to quickly recover from failure
+        Ability to recreate RDD upon failure
+            fault tolerance using lineage graph
+            rdd1
+             |  map
+            rdd2
+             | filter
+            rdd3
+
+        if rdd3 is lost how to recover?
+        we know rdd2 us parent of rdd3 and using rdd2 (parent rdd) we can get rdd3
+        we get rdd2 from lineage graph - //TODO: IMP
+        it will quickly apply transformation to get desired rdd
+        FLATMAP IS CALLED ON RDD2 TO GET RDD3
+
+RDD are immutable:
+    data cannot be changed once rdd is created
+    Had it been mutable then we would have applied all the steps on first rdd only
+    then we would not have recovered the rdd as there is no parent rdd
+    we have to run from begeninng to get back the rdd
+
+Why transformations are lazy??
+    what if the action is not performed ? waste of effort
+    to optimize we make them lazy
+        rdd1 = load 10gb file in memory(when rdd is materialized)
+        rdd1.print(line1)   --> we read whole file just to read one line - rdd1.take(1).foreach(println)
+            Facts:
+                since spark is lazy, it get chance to optimize the execution
+                complete context is known and it will do optimization internally and just load one line
+                    rdd1.map() = 10lakh lines are processed
+                        in case of map => # of input records is same as # of output records
+                            but at filter step we only need 5 records then why did we read 10lakh line
+               Filter should be used before or at early stages //TODO: best practices
+
+
+
+
+
+
+
+
+
+
+
+
+
+
